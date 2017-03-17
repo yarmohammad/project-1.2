@@ -1,0 +1,387 @@
+Project name: efficiency of different routing protocol
+Name: yar Mohammad Hafizy
+Roll no: 130101202
+Supervisor name: Sudeep Varshney
+Date of submit: 16/3/2017
+
+
+BGP Route Reflector
+BGP route reflector is a method to get rid of full mesh in our network. 
+Router reflector allows all routers in a same autonomous system number to learn about all routes in the network without creating overhead and loop.
+We configure route reflector on previous topology which we used for configuring IBGP, there are four routers for configuration.
+Steps to be followed
+1. Assign IP address to the interface of each router: this step is already done in previous submitted part.
+2. Configure IBGP protocol with neighbors.
+3. Configure Route reflector on router two (R2) and R4 as RR server, which reflects the routes to all other routers which are clients of route reflector router(RR server).
+4. Verifying the communication
+
+2. Configure IBGP protocol with neighbors.
+R1:
+router bgp 500
+neigbor 1.1.1.2 remote-as 500
+neigbor 4.4.4.1 remote-as 500
+network 10.0.0.0
+  
+Here neighbor 1.1.1.2 and neighbor 4.4.4.1 are two routes which are directly connected to router one (R1). We need to configure the neighbors manually. And 500 is  the autonomous system number which these neighbors are belong to. They are in the same autonomous system number.
+
+
+R2
+router bgp 500
+neigbor 1.1.1.1 remote-as 500
+neigbor 1.1.1.1 route-reflector-client
+neigbor 2.2.2.2 remote-as 500
+neigbor 2.2.2.2.2 route-reflector-client
+network 20.0.0.0
+
+neigbor 1.1.1.1 route-reflector-client: this command says to router one, I am route reflector router and you are my client router. Any update router one gives to R2, it reflects to all other clients.
+
+network 20.0.0.0:  this is LAN  network, which the router propagates to its neighbors for having communication.
+
+R3
+router bgp 500
+neigbor 2.2.2.1 remote-as 500
+neigbor 3.3.3.2 remote-as 500
+network 30.0.0.0
+ here router three identifies all its directly connected neighbors.
+
+R4
+router bgp 500
+neigbor 3.3.3.1 remote-as 500
+neigbor 3.3.3.1 route-reflector-client
+neigbor 4.4.4.2 remote-as 500
+neigbor 4.4.4.2 route-reflector-client
+network 40.0.0.0
+
+the R4 router also acts as route reflector router, to reflect the routes between R1 and R3.
+
+
+4. Verifying the communication
+For verifying the communication between the routers we use following commands:
+Show ip bgp : to see the configured protocols
+Show ip bgp summary   it used to see all the summary routes which are in the database table.
+Ping 30.1.1.1 to  check the  connectivity.
+
+
+Configuration of EBGP using IBGP as network transit
+In this part I have a topology which has four routers, two (R3 and R4) of them are external BGP routers with different autonomous system number, and two internal BGP routers(R1 and R2).
+My aim is to facilitate communication between two different external BGP through IBGP routers.
+Here, on router R1 and R2 I configure IBGP and OSPF routing protocols. OSPF routing protocol provides assurance of reachability to the networks.
+
+Tasks to be followed for configuration of external border gateway routing protocol
+Step 1: assign IP addresses (loopback ip address and interface ip address) on router R1, R2, R3, R4.
+Step 2: configure OSPF routing protocol  and passive interface command on R1 and R2  
+Step 3: configure BGP 100 on R1 and R2
+Step 4: configure BGP on router R3 and R4
+
+Step 1: assign IP addresses (loopback ip address and interface ip address) on router R1, R2, R3, R4.
+R1
+int loopback 0
+  ip add 1.1.1.1 255.255.255.0
+  no shut
+  exi
+  int s1/1
+  ip add 10.10.10.1 255.255.255.0
+  no shut
+  do sh his
+  int s1/0
+  ip add 30.30.30.2 255.255.255.0
+  no shut
+
+R2
+int loopback 0
+  ip add 2.2.2.2 255.255.255.0
+  exi
+  int se1/0
+  ip add 10.10.10.2 255.255.255.0
+  no shut
+  exi
+  int s1/1
+  ip add 20.20.20.1 255.255.255.0
+  no shut
+R3
+int loopback 0
+  ip add 3.3.3.3 255.255.255.0
+  no shut
+  exi
+  int s1/0
+  ip add 20.20.20.2 255.255.255.0
+  no shut
+
+R4
+int loopback 0
+  ip add 4.4.4.4 255.255.255.0
+  no shut
+  exi
+  int s1/0
+  ip add 30.30.30.1 255.255.255.0
+  no shut
+  do sh his
+
+in above we did following things
+1. I assigned real ip address on the interfaces of each router, because assigning IP address, communication is not possible
+2. I assigned loopback address, it is address which does not depend on the links. Even links goes down it is always up, it is used to check communication and availability of routers, if some of them are down.
+
+Step 2: configure OSPF routing protocol and passive interface command on R1 and R2 
+R1
+ router ospf 10
+  network 10.10.10.0 0.0.0.255 area 0
+  network 30.30.30.0  0.0.0.255 area 0
+  network 1.1.1.0  0.0.0.255 area 0
+  exi
+  router ospf 10
+  passive-interface se1/0
+  
+R2
+router ospf 10
+  network 10.10.10.0 0.0.0.255 area 0
+  network 20.20.20.0 0.0.0.255 area 0
+  network 2.2.2.0 0.0.0.255 area 0
+  passive-interface s1/1
+
+I configured OSPF routing protocol and passive interface on R1 and R2
+router ospf 10 :  this command specifies the type of routing protocol we use in the network  and 10 : this 10 number specifies the autonomous system which we use in the network. Autonomous system number is nothing but a collection of networks under a single administrative domain.
+network 10.10.10.0 0.0.0.255 area 0:  in this command I specified the network address and its wildcard mask. area 0: area 0 specifies that, this network is belong to area zero.
+
+passive-interface s1/1 :  this command tells the router to do not forward hello massage of ospf out of the area zero. Hence serial link s1/1 will not forward the hello messages of ospf out of the autonomous system and area zero.
+
+Step 3: configure BGP 100 on R1 and R2
+
+
+R1
+router bgp 100
+  neighbor 10.10.10.2 remote-as 100
+  neighbor 30.30.30.1 remote-as 300
+  network 1.1.1.0 mask 255.255.255.0
+  network 10.10.10.0 mask 255.255.255.0
+  do write
+ 
+Description of codes in R1:
+router bgp 100  by using this command I configured BGP routing protocol in which its autonomous system number is 100. Both routers(R1 and R2) are in the same(100) AS.
+This 100 can be any number between 1 to 65565.
+
+neighbor 10.10.10.2 remote-as 100: 
+By neighbor command we can make neighbor ship between R1 and R2. 10.10.10.2 this is the interface IP address of R2  router which is directly connected to R1 router, this IP address is assigned on serial 1/0 of R2 router.
+remote-as 100:  this command specifies that the  10.10.10.2 ip address is the address of remote router’s interface, and the address is belong to the 100 autonomous system number.
+neighbor 30.30.30.1 remote-as 300: this command is used to specify neighbor relationship by R4 router. R4 router is an External BGP router, this is why the AS number differs, and it is 300.  If the AS number is different it means the neighbor is a router which is belong to  the different network.
+
+
+network 1.1.1.0 mask 255.255.255.0 :  this command is used to propagate the loopback IP address to other neighbors with the specified subnet mask.
+  network 10.10.10.0 mask 255.255.255.0: this command is used to propagate the real IP address which is assigned on the serial link of router to the neighbors which is directly connected to the router.
+do write : this command is used to save the configured codes to the nonvolatile memory(NVRAM) of router from volatile memory(RAM).
+
+
+
+R2
+router bgp 100
+  neighbor 10.10.10.1 remote-as 100
+  neighbor 20.20.20.2 remote-as 200
+  net 2.2.2.0 mask 255.255.255.0
+  net 10.10.10.0 mask 255.255.255.0
+  net 20.20.20.0 mask 255.255.255.0
+  do write
+Description of codes in R1:
+router bgp 100  by using this command I configured BGP routing protocol in which its autonomous system number is 100. Both routers (R1 and R2) are in the same(100) AS.
+This 100 can be any number between1 to 65565.
+
+neighbor 10.10.10.1 remote-as 100: 
+By neighbor command we can make neighbor ship between R1 and R2. 10.10.10.1 this is the interface IP address of R1  router which is directly connected to R2 router, this IP address is assigned on serial 1/1 of R1 router.
+remote-as 100:  this command specifies that the  10.10.10.2 ip address is the address of remote router’s interface, and the address is belong to the 100 autonomous system number.
+neighbor 20.20.20.2 remote-as 200: this command is used to build neighbor relationship by R3 router. R3 router is an External BGP router, this is why the AS number differs, and it is 200.  If the AS number is different it means the neighbor is a router which is belong to the different network.
+
+
+network 2.2.2.0 mask 255.255.255.0 :  this command is used to propagate the loopback IP address to other neighbors with the specified subnet mask.
+  network 10.10.10.0 mask 255.255.255.0: this command is used to propagate the real IP address which is assigned on the serial link of router to the neighbors which is directly connected to the router.
+Step 4: configure BGP on router R3 and R4
+
+R4
+router bgp 300
+  neighbor 30.30.30.2 remote-as 100
+  network 4.4.4.0 mask 255.255.255.0
+  network 30.30.30.0 mask 255.255.255.0
+  neighbor 30.30.30.2 update-source loopback 0
+  do write
+ 
+router bgp 300:  by using this command, I configured BGP routing protocol with AS 300 on router R4.
+neighbor 30.30.30.2 remote-as 100: this command is used to build relationship with router R1, which it’s AS is 100.  The IP address 30.30.30.2 is assigned on router R1, that is belong to AS 100.
+
+ network 4.4.4.0 mask 255.255.255.0: by using this command we distribute the loopback address to the directly connected neighbor (R1).
+network 30.30.30.0 mask 255.255.255.0: by using this command i distributed the actual network address  to the directly connected neighbor (R1).
+
+neighbor 30.30.30.2 update-source loopback 0: this command is used to tell to the neighbor router to use loopback address(4.4.4.4) as source address for communication purpose.
+
+ R3
+router bgp 200
+  neighbor 20.20.20.1 remote-as 100
+  network 3.3.3.3 mask 255.255.255.0
+  net 3.3.3.0 mask 255.255.255.0
+  net 20.20.20.0 mask 255.255.255.0
+  neighbor 20.20.20.1 update-source loopback 0
+  do write
+
+router bgp 200:  by using this command, I configured BGP routing protocol with AS 200 on router R3.
+neighbor 20.20.20.1 remote-as 100: this command is used to build relationship with router R2, which it’s AS is 100.  The IP address 20.20.20.1 is assigned on router R2, that is belong to AS 100.
+network 3.3.3.0 mask 255.255.255.0: by using this command ? distributed the loopback address(.3.3.3.0) to the directly connected neighbor (R2).
+
+network 20.20.20.0 mask 255.255.255.0: by using this command i distributed the actual network address  to the directly connected neighbor (R2).
+
+neighbor 20.20.20.1 update-source loopback 0: this command is used to tell to the neighbor router to use loopback address(3.3.3.3) as source address for communication 
+purpose.
+
+BGP authentication
+BGP is different than the other routing protocols (EIGRP,OSPF) because you must explicitly configure the peer relationships between routers. These peers then use point-to-point TCP connections to exchange information. So it is much more difficult for a malicious user to surreptitiously establish a peer relationship with one of your routers and corrupt your routing tables. But it is still possible to hijack an existing TCP connection between two BGP peers and inject bad routes. And if the attackers are on the same network segment as one of the peers, they can potentially hijack the IP address of the legitimate peer and set up a new BGP session.
+
+With authentication, this type of attack is considerably more difficult. This is because the attacker must not only get the TCP sequence numbers right, but he must also insert the correct encrypted authentication key.
+
+Configuring BGP Authentication on Cisco IOS:
+Border Gateway Protocol (BGP) supports authentication mechanism using Message Digest 5 (MD5) algorithm. When authentication is enabled, any Transmission Control Protocol (TCP) segment belonging to BGP exchanged between the peers is verified and accepted only if authentication is successful. For authentication to be successful, both the peers must be configured with the same password. If authentication fails, the BGP neighbor relationship is not be established.
+I configure MD5 authentication on EBGP topology which already did.
+
+Steps to be followed for authenticating BGP
+1. Assigning IP address on each routers:  I already done this step in external BGP configuration, because I provide authentication on that topology.
+2. Configuring IBGP , EBGP, and one of the IGP routing protocols(RIP,EIGRP,OSPF):
+This part is also done in external BGP configuration.
+3. Configuring MD5 authentication on each router: I do only this step, because the two above steps are already done.
+
+ 
+Configuring MD5 on router R1
+ router bgp 100
+neighbor 30.30.30.1 password yar@123
+neighbor 10.10.10.2 password yar@123
+
+router bgp 100  by using this command I configured BGP routing protocol in which its autonomous system number is 100. Both routers(R1 and R2) are in the same(100) AS.
+
+neighbor 30.30.30.1 password yar@123:  this command is used to provide password for neighbor interface link  which has 30.30.30.1 IP address. yar@123: this is the password which is used for authentication.
+
+Configuring MD5 on router R2
+router bgp 100
+neighbor 20.20.20.2 password yar@123
+neighbor 10.10.10.1 password yar@123
+
+neighbor 20.20.20.2 password yar@123:  this command is used to assign IP address to the link which has 20.20.20.2 with the same password. Password should be same for authentication. The IP address which is used here is belong to the interface of router R3.
+
+Configuring MD5 on router R3
+
+router bgp 200
+neighbor 20.20.20.1 password yar@123
+
+here, the IP address used is belong to the router R2, by using this command I assigned MD5 authentication to the serial link of router R2. The AS of router R3 is different from R2, because I am configured from R3 router, and R3 is an external router from different AS system.
+
+Configuring MD5 on router R4
+router bgp 300
+neighbor 30.30.30.2 password yar@123
+
+Here, the IP address used is belong to the router R1, by using this command I assigned MD5 authentication to the serial link of router R1. The AS of router R4 is different from R2, because I am configured from R4 router. and R4 is an external router from different AS system.
+Network address translation (NAT) on OSPF network topology
+When Internet was born long back and IPv4 addressing first came out, there were only a few computers all over the world. IPV4 was sufficient to give IP address to all them, but later by increasing of devices, shortage of IPv4 has encountered. For solving this problem they invented the NAT to overcome this problem.
+
+I used NAT to my network for only checking the working routing protocols with NAT. does NAT slows down the network or not ,  does routers work efficiently by implementing NAT on them?
+
+Steps to be followed for configuration
+1.Assigning IP address to the interfaces of each router: this step has done in OSPF network, because I am configuring NAT on the topology which we used for configuring OSPF routing protocol.
+2. Configure OSPF routing protocol: this step also has done.
+3. Configuring NAT on R1 and R4: I configure these two routers because they at the corner and they are connected to local LANs. We basically translate LAN IP addresses to one public IP address.
+
+Configuring NAT on R1
+access-list 10 permit 192.168.10.0 0.0.0.255
+  ip nat pool ccna 1.1.1.1 1.1.1.1 netmask 255.0.0.0
+  ip nat inside source list 10 pool ccna overload
+  int fa0/0
+  ip nat inside
+  int s2/0
+  ip nat outside
+descriptions of each command:
+access-list 10 permit 192.168.10.0 0.0.0.255:  in this command access-list is used to permit a specific network to be translated to a public IP address. The number 10 shows which kind of access list is using here(here we used standard access list). The  Permit keyword is to permit the defined network address for translation. This is   192.168.10.0 0.0.0.255 network address and wildcard mask, this is the real LAN network address to be translated to a public IP address.
+ 
+ ip nat pool ccna 1.1.1.1 1.1.1.1 netmask 255.0.0.0: in this command there is following things:
+ip nat pool ccna: by this command we specify a pool of IP addresses that  private IP addresses to be translated, the pool has a name, the name is ccna.
+1.1.1.1 1.1.1.1 netmask 255.0.0.0: the first IP address is the starting IP address and the last IP address is the end of the public IP addresses. A private IP address will be translated to this(1.1.1.1) IP address. This netmask 255.0.0.0 command specifies the mask address of the 1.1.1.1 IP address.
+
+ip nat inside source list 10 pool ccna overload : this command is used to join the access list network address with public IP address(1.1.1.1).
+int fa0/0 this is the interface which is connected to the local network.
+ ip nat inside: we write this command to tell the router in which int fa0/0 interface is located inside the network and is used to translate inside address to outside address.
+
+int s2/0: this is the interface which our public IP address (1.1.1.1) is configured 
+ ip nat outside: we write this command in s2/0, because this interface is located to the  outside of LAN, the inside IP addresses will be translated to outside IP address(1.1.1.1).
+
+Configuring NAT on R4
+access-list 20 permit 192.168.20.0 0.0.0.255 
+ip nat pool ccnp 3.3.3.2 3.3.3.2 netmask 255.0.0.0
+ ip nat inside source list 20 pool ccnap overload
+  int fa0/0
+  ip nat inside
+  no shut
+the above command is same as R1 configuration, the only thing differs are access list number which is 20  and pool name which is ccnp.
+
+
+Network address translation (NAT) on BGP network topology
+
+We configure NAT on all four routers, because they all are connected to LAN.
+R1
+access-list 10 permit 10.0.0.0 0.255.255.255
+  ip nat pool ccna 1.1.1.1 1.1.1.1 netmask 255.0.0.0
+  ip nat inside source list 10 pool ccna overload
+  int fa0/0
+  ip nat inside
+  int s1/0
+  ip nat outside
+
+
+R2
+access-list 20 permit 20.0.0.0 0.255.255.255
+  ip nat pool ccna 2.2.2.1 2.2.2.1  netmask 255.0.0.0
+  ip nat inside source list 20 pool ccnp overload
+  int fa0/0
+  ip nat inside
+  int s1/1
+  ip nat outside
+
+R3
+access-list 30 permit 30.0.0.0 0.255.255.255
+  ip nat pool ccnpi 2.2.2.2 2.2.2.2  netmask 255.0.0.0
+  ip nat inside source list 30 pool ccnpi overload
+  int fa0/0
+  ip nat inside
+  int s1/0
+  ip nat outside
+
+R4
+access-list 40 permit 40.0.0.0 0.255.255.255
+  ip nat pool ccnpii 4.4.4.1 4.4.4.1  netmask 255.0.0.0
+  ip nat inside source list 40 pool ccnpii overload
+  int fa0/0
+  ip nat inside
+  int s1/1
+  ip nat outside
+
+
+note:  I described all the commands in NAT configuration on OSPF section so I don’t need to describe each command again and again.
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
